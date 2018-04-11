@@ -12,6 +12,8 @@
     :license: BSD, see LICENSE for details
 
     Inspired by ``sphinxcontrib-aafig`` by Leandro Lucarella.
+
+    Modified by Noboru Yamamoto for sphinx 1.7
 """
 
 import posixpath
@@ -24,16 +26,12 @@ except ImportError:
     from sha import sha
 
 from docutils import nodes
-from docutils.parsers.rst import directives
-
+from docutils.parsers.rst.directives.images import Image
 from sphinx.errors import SphinxError
 from sphinx.util import ensuredir, relative_uri
-from sphinx.util.compat import Directive
 
 
-
-DEFAULT_FORMATS = dict(html='png', latex='pdf', text=None)
-
+DEFAULT_FORMATS = dict(html='png', latex='png', text=None)
 
 
 def get_hashid(text,options):
@@ -46,28 +44,28 @@ class GnuplotError(SphinxError):
     category = 'gnuplot error'
 
 
-class GnuplotDirective(directives.images.Image):
+class GnuplotDirective(Image):
     """
     Directive that builds plots using gnuplot.
     """
     has_content = True
     required_arguments = 0
-    own_option_spec = dict(
-        size = str,
-        title = str,
-        datafiles = str,
+    own_option_spec = dict(size=str,
+                           title=str,
+                           datafiles=str)
 
-    )
-
-    option_spec = directives.images.Image.option_spec.copy()
+    option_spec = Image.option_spec.copy()
     option_spec.update(own_option_spec)
-  
-    def run(self):
+
+    def __init__(self, *args, **kw):
+        super(GnuplotDirective, self).__init__(*args, **kw)
         self.arguments = ['']
-        gnuplot_options = dict([(k,v) for k,v in self.options.items() 
+
+    def run(self):
+        gnuplot_options = dict([(k,v) for k,v in self.options.items()
                                   if k in self.own_option_spec])
 
-        (image_node,) = directives.images.Image.run(self)
+        (image_node,) = super(GnuplotDirective, self).run()
         if isinstance(image_node, nodes.system_message):
             return [image_node]
         text = '\n'.join(self.content)
@@ -85,7 +83,7 @@ def render_gnuplot_images(app, doctree):
         try:
             fname, outfn, hashid = render_gnuplot(app, text, options)
             img['uri'] = fname
-        except GnuplotError, exc:
+        except GnuplotError as exc:
             app.builder.warn('gnuplot error: ' + str(exc))
             img.replace_self(nodes.literal_block(text, text))
             continue
@@ -136,7 +134,7 @@ def render_gnuplot(app, text, options):
         plot.stdin.write("%s\n" % text)
         plot.stdin.write("\nquit\n")
         plot.stdin.flush()
-    except Exception, e:
+    except Exception as e:
         raise GnuplotError(str(e))
 
     return relfn, outfn, hashid
