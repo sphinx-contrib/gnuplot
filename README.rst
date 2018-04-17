@@ -94,7 +94,7 @@ For now one optional configuration is added to Sphinx_. It can be set in
 
   For example::
 
-    gnuplot_format = dict(latex='pdf', html='png')
+    gnuplot_format = dict(latex='png', html='png')
 
   These are the actual defaults.
 
